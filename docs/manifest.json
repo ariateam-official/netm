@@ -1,0 +1,62 @@
+{
+    "name": "مش چت آفلاین - ارتباط بدون اینترنت",
+    "short_name": "مش چت",
+    "description": "ارتباط مستقیم با دیگران بدون نیاز به اینترنت با شبکه مش",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#4f46e5",
+    "theme_color": "#4f46e5",
+    "orientation": "portrait",
+    "scope": "/",
+    "dir": "rtl",
+    "lang": "fa",
+    "categories": ["communication", "social", "utilities"],
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%234f46e5'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='white' font-family='Arial'%3E📡%3C/text%3E%3C/svg%3E",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%234f46e5'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='white' font-family='Arial'%3E📡%3C/text%3E%3C/svg%3E",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "چت کلی",
+            "short_name": "عمومی",
+            "description": "ورود به چت عمومی",
+            "url": "/?public",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%234f46e5'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='white' font-family='Arial'%3E🌐%3C/text%3E%3C/svg%3E",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "چت خصوصی",
+            "short_name": "خصوصی",
+            "description": "ارتباط خصوصی با یک نفر",
+            "url": "/?private",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%234f46e5'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='white' font-family='Arial'%3E🤝%3C/text%3E%3C/svg%3E",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1080 1920'%3E%3Crect width='1080' height='1920' fill='%234f46e5'/%3E%3Ctext x='540' y='960' font-size='48' text-anchor='middle' fill='white' font-family='Arial'%3Eمش چت آفلاین%3C/text%3E%3C/svg%3E",
+            "sizes": "1080x1920",
+            "type": "image/svg+xml"
+        }
+    ]
+}
