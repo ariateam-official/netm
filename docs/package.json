@@ -1,0 +1,21 @@
+{
+    "name": "mesh-chat-signaling-server",
+    "version": "1.0.0",
+    "description": "سرور سیگنالینگ برای مش چت آفلاین",
+    "main": "server/signaling-server.js",
+    "scripts": {
+        "start": "node server/signaling-server.js",
+        "dev": "nodemon server/signaling-server.js"
+    },
+    "keywords": ["webrtc", "signaling", "mesh", "chat", "pwa"],
+    "author": "طاها قاسمی",
+    "license": "MIT",
+    "dependencies": {
+        "express": "^4.18.2",
+        "socket.io": "^4.7.2",
+        "cors": "^2.8.5"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1"
+    }
+}
