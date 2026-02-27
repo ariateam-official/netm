@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>مش چت آفلاین</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    
+    <!-- متا تگ‌های اضافی برای سازگاری بیشتر -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+</head>
+<body>
+    <!-- دکمه نصب هوشمند (به صورت تبلیغ) -->
+    <div id="install-banner" class="install-banner hidden">
+        <div class="install-content">
+            <div class="install-icon">📡</div>
+            <div class="install-text">
+                <h4>نصب برنامه مش چت</h4>
+                <p>استفاده آفلاین و آنلاین بدون مشکل</p>
+            </div>
+            <button id="install-btn" class="install-btn">نصب</button>
+            <button id="close-banner" class="close-banner">✕</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- صفحه ورود -->
+        <div id="login-screen" class="screen active">
+            <div class="header">
+                <h1 class="title">مش چت آفلاین</h1>
+                <p class="subtitle">ارتباط مستقیم در هر شرایطی</p>
+            </div>
+            
+            <div class="card user-id-card">
+                <div class="id-label">شناسه شما</div>
+                <div class="user-id" id="user-id">-----</div>
+                <button class="btn-secondary" id="refresh-id-btn">شناسه جدید</button>
+            </div>
+            
+            <div class="card">
+                <input type="text" id="username-input" placeholder="نام خود را وارد کنید" maxlength="20">
+                <button class="btn-primary" id="join-network-btn">ورود به شبکه</button>
+            </div>
+            
+            <div class="footer-note">
+                <p>ساخته شده توسط طاها قاسمی</p>
+                <p>زمستان 1404</p>
+            </div>
+        </div>
+
+        <!-- صفحه اصلی چت -->
+        <div id="main-screen" class="screen">
+            <div class="header">
+                <div class="header-top">
+                    <h2 class="screen-title">مش چت آفلاین</h2>
+                    <div class="user-badge" id="header-username"></div>
+                </div>
+                <div class="connection-status" id="connection-status">
+                    <span class="status-dot"></span>
+                    <span>اتصال مستقیم...</span>
+                </div>
+            </div>
+
+            <div class="network-options">
+                <button class="option-card" id="public-chat-btn">
+                    <div class="option-icon">🌐</div>
+                    <div class="option-text">
+                        <h3>چت کلی</h3>
+                        <p>گفتگو با همه در اطرافت</p>
+                    </div>
+                </button>
+                
+                <button class="option-card" id="private-chat-btn">
+                    <div class="option-icon">🤝</div>
+                    <div class="option-text">
+                        <h3>چت شخصی</h3>
+                        <p>ارتباط خصوصی با یک نفر</p>
+                    </div>
+                </button>
+            </div>
+
+            <!-- بخش چت کلی -->
+            <div id="public-chat-section" class="chat-section hidden">
+                <div class="section-header">
+                    <h4>چت کلی - همسایه‌ها</h4>
+                    <button class="close-section-btn" id="close-public-chat">✕</button>
+                </div>
+                <div class="peers-list" id="peers-list"></div>
+                <div class="chat-messages" id="public-messages"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="public-message-input" placeholder="پیامت رو بنویس...">
+                    <button id="send-public-btn">ارسال</button>
+                </div>
+            </div>
+
+            <!-- بخش چت شخصی -->
+            <div id="private-chat-section" class="chat-section hidden">
+                <div class="section-header">
+                    <h4>چت شخصی</h4>
+                    <button class="close-section-btn" id="close-private-chat">✕</button>
+                </div>
+                <div class="peer-connect">
+                    <input type="text" id="peer-id-input" placeholder="شناسه ۵ رقمی مخاطب" maxlength="5">
+                    <button id="connect-peer-btn">اتصال</button>
+                </div>
+                <div class="chat-messages" id="private-messages"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="private-message-input" placeholder="پیام خصوصی..." disabled>
+                    <button id="send-private-btn" disabled>ارسال</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تشخیص مرورگر و بارگذاری کتابخونه مناسب -->
+    <script>
+        // تشخیص مرورگر و بارگذاری Polyfill در صورت نیاز
+        (function() {
+            if (!window.Promise || !window.fetch || !window.WeakMap) {
+                // بارگذاری polyfill برای مرورگرهای قدیمی
+                var script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js';
+                document.head.appendChild(script);
+            }
+        })();
+    </script>
+    
+    <!-- استفاده از CDN برای اطمینان از پشتیبانی همه مرورگرها -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+    <!-- فایل محلی به عنوان fallback -->
+    <script>
+        if (typeof Peer === 'undefined') {
+            document.write('<script src="libs/peerjs.min.js"><\/script>');
+        }
+    </script>
+    
+    <script src="app.js"></script>
+</body>
+</html>
