@@ -5,7 +5,7 @@
 
     // تشخیص محیط و تنظیم BASE_URL
     const isGitHubPages = window.location.hostname.includes('github.io');
-    const repoName = 'mesh-chat'; // اسم مخزن خودت رو اینجا بذار
+    const repoName = 'netm'; // اسم مخزن خودت رو اینجا بذار
     
     window.APP_CONFIG = {
         BASE_URL: isGitHubPages ? `/${repoName}` : '',
