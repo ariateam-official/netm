@@ -1,16 +1,17 @@
-// app.js - نسخه بهینه برای GitHub Pages
-// تنظیم خودکار آدرس پایه بر اساس محیط
+// app.js - نسخه نهایی با رفع باگ‌ها
 (function() {
     'use strict';
 
-    // تشخیص محیط و تنظیم BASE_URL
+    // تنظیمات پایه
     const isGitHubPages = window.location.hostname.includes('github.io');
-    const repoName = 'netm'; // اسم مخزن خودت رو اینجا بذار
+    const pathSegments = window.location.pathname.split('/');
+    const repoName = pathSegments[1] || 'mesh-chat';
     
     window.APP_CONFIG = {
         BASE_URL: isGitHubPages ? `/${repoName}` : '',
         IS_GITHUB: isGitHubPages,
-        REPO_NAME: repoName
+        REPO_NAME: repoName,
+        VERSION: '3.0.0'
     };
     
     console.log('🌐 محیط:', isGitHubPages ? 'GitHub Pages' : 'محلی');
@@ -27,41 +28,19 @@ class MeshChat {
         this.isOffline = !navigator.onLine;
         this.deferredPrompt = null;
         this.BASE_URL = window.APP_CONFIG.BASE_URL;
+        self = this;
         
-        this.init();
-        this.setupInstallPrompt();
-        this.setupConnectivityListeners();
-        this.registerServiceWorker();
-    }
-
-    // ثبت سرویس ورکر
-    registerServiceWorker() {
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register(`${this.BASE_URL}/sw.js`)
-                    .then(registration => {
-                        console.log('✅ سرویس ورکر ثبت شد:', registration.scope);
-                        
-                        // بررسی به‌روزرسانی
-                        registration.addEventListener('updatefound', () => {
-                            const newWorker = registration.installing;
-                            console.log('🔄 نسخه جدید سرویس ورکر در حال نصب...');
-                        });
-                    })
-                    .catch(error => {
-                        console.log('❌ خطا در ثبت سرویس ورکر:', error);
-                    });
-            });
-
-            // شنونده برای پیام‌های سرویس ورکر
-            navigator.serviceWorker.addEventListener('message', event => {
-                console.log('📨 پیام از سرویس ورکر:', event.data);
-            });
+        // صبر کن تا DOM کامل لود بشه
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.init());
+        } else {
+            this.init();
         }
     }
 
     init() {
-        // المنت‌های DOM با در نظر گرفتن BASE_URL
+        console.log('🚀 شروع راه‌اندازی MeshChat...');
+        
         this.elements = {
             userId: document.getElementById('user-id'),
             refreshIdBtn: document.getElementById('refresh-id-btn'),
@@ -91,16 +70,70 @@ class MeshChat {
             closeBanner: document.getElementById('close-banner')
         };
 
-        // بررسی وجود المنت‌ها
+        // بررسی وجود المنت‌های ضروری
         if (!this.elements.userId) {
             console.error('❌ المنت‌های DOM پیدا نشد!');
             return;
         }
 
-        // ایجاد شناسه تصادفی ۵ رقمی
+        // راه‌اندازی
         this.generateUserId();
+        this.setupEventListeners();
+        this.setupInstallPrompt();
+        this.setupConnectivityListeners();
+        this.registerServiceWorker();
         
-        // Event Listeners
+        // چک کردن وضعیت سرویس ورکر
+        this.checkServiceWorker();
+        
+        console.log('✅ راه‌اندازی کامل شد');
+    }
+
+    checkServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(registration => {
+                console.log('✅ سرویس ورکر آماده است:', registration.active);
+                
+                // ارسال پیام به سرویس ورکر
+                if (registration.active) {
+                    registration.active.postMessage({
+                        type: 'GET_STATUS'
+                    });
+                }
+            });
+            
+            // شنونده برای پیام‌های سرویس ورکر
+            navigator.serviceWorker.addEventListener('message', event => {
+                console.log('📨 پیام از سرویس ورکر:', event.data);
+            });
+        }
+    }
+
+    registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register(`${this.BASE_URL}/sw.js`)
+                .then(registration => {
+                    console.log('✅ سرویس ورکر ثبت شد:', registration.scope);
+                    
+                    // بررسی به‌روزرسانی
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        console.log('🔄 نسخه جدید سرویس ورکر در حال نصب...');
+                        
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                console.log('🔄 نسخه جدید آماده است. صفحه رو رفرش کن.');
+                            }
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.log('⚠️ خطا در ثبت سرویس ورکر:', error);
+                });
+        }
+    }
+
+    setupEventListeners() {
         this.elements.refreshIdBtn.addEventListener('click', () => this.generateUserId());
         this.elements.joinNetworkBtn.addEventListener('click', () => this.joinNetwork());
         this.elements.publicChatBtn.addEventListener('click', () => this.openPublicChat());
@@ -119,7 +152,7 @@ class MeshChat {
             this.elements.installBtn.addEventListener('click', () => this.installApp());
         }
         
-        // Enter key برای ارسال پیام
+        // Enter key
         this.elements.publicMessageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.sendPublicMessage();
         });
@@ -131,51 +164,33 @@ class MeshChat {
         this.elements.peerIdInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.connectToPeer();
         });
-
-        // بررسی وضعیت اینترنت
-        this.updateOnlineStatus();
-        
-        // چک کردن نصب بودن برنامه
-        setTimeout(() => {
-            if (!this.isAppInstalled() && this.elements.installBanner) {
-                this.elements.installBanner.classList.remove('hidden');
-            }
-        }, 3000);
     }
 
-    // راه‌اندازی دکمه نصب PWA
+    generateUserId() {
+        this.userId = Math.floor(10000 + Math.random() * 90000).toString();
+        if (this.elements.userId) {
+            this.elements.userId.textContent = this.userId;
+        }
+        localStorage.setItem('meshChat_userId', this.userId);
+    }
+
     setupInstallPrompt() {
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             this.deferredPrompt = e;
             
-            // نمایش بنر نصب (به جز زمانی که برنامه نصب شده)
             if (!this.isAppInstalled() && this.elements.installBanner) {
-                this.elements.installBanner.classList.remove('hidden');
+                setTimeout(() => {
+                    this.elements.installBanner.classList.remove('hidden');
+                }, 2000);
             }
         });
 
         window.addEventListener('appinstalled', () => {
             this.deferredPrompt = null;
             this.hideInstallBanner();
-            console.log('✅ برنامه با موفقیت نصب شد');
-            
-            // ارسال پیام به سرویس ورکر
-            if (navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({
-                    type: 'APP_INSTALLED'
-                });
-            }
+            console.log('✅ برنامه نصب شد');
         });
-    }
-
-    hideInstallBanner() {
-        if (this.elements.installBanner) {
-            this.elements.installBanner.classList.add('hidden');
-            
-            // ذخیره در localStorage که دیگه نشون نده
-            localStorage.setItem('install-banner-closed', 'true');
-        }
     }
 
     isAppInstalled() {
@@ -184,11 +199,18 @@ class MeshChat {
                localStorage.getItem('install-banner-closed') === 'true';
     }
 
+    hideInstallBanner() {
+        if (this.elements.installBanner) {
+            this.elements.installBanner.classList.add('hidden');
+            localStorage.setItem('install-banner-closed', 'true');
+        }
+    }
+
     async installApp() {
         if (!this.deferredPrompt) {
             alert('برای نصب:\n' +
-                  '📱 در موبایل: از منوی مرورگر گزینه "Add to Home Screen" را انتخاب کنید\n' +
-                  '💻 در دسکتاپ: روی آدرس بار، آیکون نصب را بزنید');
+                  '📱 در موبایل: از منوی مرورگر "Add to Home Screen" را انتخاب کنید\n' +
+                  '💻 در دسکتاپ: روی آیکون نصب در آدرس بار کلیک کنید');
             return;
         }
 
@@ -202,6 +224,7 @@ class MeshChat {
     setupConnectivityListeners() {
         window.addEventListener('online', () => this.updateOnlineStatus());
         window.addEventListener('offline', () => this.updateOnlineStatus());
+        this.updateOnlineStatus();
     }
 
     updateOnlineStatus() {
@@ -216,17 +239,6 @@ class MeshChat {
         }
     }
 
-    generateUserId() {
-        // تولید شناسه ۵ رقمی تصادفی
-        this.userId = Math.floor(10000 + Math.random() * 90000).toString();
-        if (this.elements.userId) {
-            this.elements.userId.textContent = this.userId;
-        }
-        
-        // ذخیره در localStorage
-        localStorage.setItem('meshChat_userId', this.userId);
-    }
-
     async joinNetwork() {
         this.username = this.elements.usernameInput.value.trim();
         
@@ -236,38 +248,21 @@ class MeshChat {
         }
 
         try {
-            // تنظیمات سرورهای STUN برای پشتیبانی بهتر
+            // تنظیمات STUN سرورها
             const iceServers = {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:stun1.l.google.com:19302' },
                     { urls: 'stun:stun2.l.google.com:19302' },
                     { urls: 'stun:stun3.l.google.com:19302' },
-                    { urls: 'stun:stun4.l.google.com:19302' },
-                    { urls: 'stun:stun.ekiga.net' },
-                    { urls: 'stun:stun.ideasip.com' },
-                    { urls: 'stun:stun.schlund.de' },
-                    { urls: 'stun:stun.stunprotocol.org:3478' },
-                    { urls: 'stun:stun.voiparound.com' },
-                    { urls: 'stun:stun.voipbuster.com' }
-                ],
-                sdpSemantics: 'unified-plan' // برای سازگاری بهتر
+                    { urls: 'stun:stun4.l.google.com:19302' }
+                ]
             };
 
-            // تنظیمات PeerJS برای GitHub Pages
-            const peerOptions = {
+            this.peer = new Peer(this.userId, {
                 config: iceServers,
-                debug: 2, // لاگ برای رفع اشکال
-                reliable: true // اتصال مطمئن
-            };
-
-            // در حالت آفلاین یا مشکلات CORS، از تنظیمات ساده استفاده کن
-            if (this.isOffline || window.APP_CONFIG.IS_GITHUB) {
-                console.log('📡 استفاده از حالت آفلاین/مستقیم');
-                // بدون سرور سیگنالینگ، اتصال مستقیم
-            }
-
-            this.peer = new Peer(this.userId, peerOptions);
+                debug: 2
+            });
 
             this.setupPeerEvents();
             
@@ -276,22 +271,30 @@ class MeshChat {
             this.elements.mainScreen.classList.add('active');
             this.elements.headerUsername.textContent = this.username;
             
-            // ذخیره در localStorage
             localStorage.setItem('meshChat_username', this.username);
             
-            // شروع جستجوی خودکار همسایه‌ها
+            // شروع کشف همسایه
             this.startPeerDiscovery();
             
-            // نمایش پیام خوش‌آمدگویی
+            // نمایش پیام خوش‌آمد
             setTimeout(() => {
-                this.updateConnectionStatus('✅ آماده اتصال - شناسه شما: ' + this.userId, 'success');
+                this.updateConnectionStatus('✅ آماده اتصال', 'success');
+                
+                // اضافه کردن پیام راهنما به چت کلی
+                if (this.elements.publicMessages) {
+                    this.displayMessage(this.elements.publicMessages, {
+                        text: 'به چت کلی خوش آمدید! برای شروع گفتگو، چند نفر دیگر هم باید این برنامه را باز کنند.',
+                        sender: 'سیستم',
+                        isSent: false,
+                        time: new Date().toLocaleTimeString('fa-IR')
+                    });
+                }
             }, 1000);
             
         } catch (error) {
-            console.error('❌ خطا در راه‌اندازی:', error);
-            alert('خطا در اتصال به شبکه. اما می‌توانید در حالت آفلاین از برنامه استفاده کنید.');
+            console.error('❌ خطا:', error);
+            alert('خطا در اتصال. اما می‌توانید در حالت آفلاین کار کنید.');
             
-            // حتی با خطا هم صفحه اصلی رو نشون بده
             this.elements.loginScreen.classList.remove('active');
             this.elements.mainScreen.classList.add('active');
             this.elements.headerUsername.textContent = this.username;
@@ -300,33 +303,20 @@ class MeshChat {
 
     setupPeerEvents() {
         this.peer.on('open', (id) => {
-            console.log('✅ PeerJS آماده با شناسه:', id);
-            this.updateConnectionStatus(
-                this.isOffline ? '🟠 آماده در حالت آفلاین' : '🟢 متصل به شبکه',
-                this.isOffline ? 'offline' : 'success'
-            );
+            console.log('✅ PeerJS آماده:', id);
         });
 
         this.peer.on('connection', (conn) => {
-            console.log('📞 اتصال دریافتی از:', conn.peer);
+            console.log('📞 اتصال جدید از:', conn.peer);
             this.handleIncomingConnection(conn);
         });
 
         this.peer.on('error', (err) => {
             console.error('❌ خطای PeerJS:', err);
-            
-            if (err.type === 'unavailable-id') {
-                this.generateUserId();
-                alert('این شناسه قبلاً استفاده شده. شناسه جدیدی برای شما ساخته شد.');
-            } else if (err.type === 'network' || err.type === 'disconnected') {
-                this.updateConnectionStatus('⚠️ مشکل در اتصال', 'error');
-            }
         });
 
         this.peer.on('disconnected', () => {
-            console.log('📴 قطع اتصال از شبکه');
-            this.updateConnectionStatus('⚠️ قطع اتصال - تلاش برای اتصال مجدد...', 'error');
-            
+            console.log('📴 قطع موقت اتصال');
             setTimeout(() => {
                 if (this.peer && !this.peer.destroyed) {
                     this.peer.reconnect();
@@ -336,80 +326,97 @@ class MeshChat {
     }
 
     startPeerDiscovery() {
-        // استفاده از BroadcastChannel برای کشف همسایه
+        // روش اول: BroadcastChannel
         if (typeof BroadcastChannel !== 'undefined') {
             try {
-                const channel = new BroadcastChannel('mesh-chat-discovery');
+                const channel = new BroadcastChannel('mesh-chat');
                 
                 channel.onmessage = (event) => {
                     if (event.data && 
-                        event.data.type === 'discovery' && 
+                        event.data.type === 'peer-discovery' && 
                         event.data.userId !== this.userId) {
                         
                         console.log('🔍 همسایه پیدا شد:', event.data);
                         this.addToPeersList(event.data);
                         
+                        // اتصال خودکار برای چت کلی
                         if (!this.connections.has(event.data.userId)) {
                             setTimeout(() => {
                                 this.connectToPeer(event.data.userId, true);
-                            }, 1000);
+                            }, 500);
                         }
                     }
                 };
                 
-                // ارسال پیام کشف هر ۵ ثانیه
+                // ارسال سیگنال کشف هر ۳ ثانیه
                 setInterval(() => {
                     if (this.username) {
                         channel.postMessage({
-                            type: 'discovery',
+                            type: 'peer-discovery',
                             userId: this.userId,
                             username: this.username,
                             timestamp: Date.now()
                         });
                     }
-                }, 5000);
+                }, 3000);
                 
-                console.log('📡 BroadcastChannel راه‌اندازی شد');
+                console.log('📡 BroadcastChannel فعال شد');
                 
             } catch (e) {
-                console.log('⚠️ BroadcastChannel پشتیبانی نمی‌شود:', e);
-                this.fallbackDiscovery();
+                console.log('⚠️ BroadcastChannel خطا:', e);
+                this.startLocalStorageDiscovery();
             }
         } else {
-            this.fallbackDiscovery();
+            this.startLocalStorageDiscovery();
         }
     }
 
-    fallbackDiscovery() {
-        console.log('🔄 استفاده از روش localStorage برای کشف همسایه');
+    startLocalStorageDiscovery() {
+        console.log('🔄 استفاده از localStorage discovery');
         
-        // استفاده از localStorage events
+        // ذخیره اطلاعات خودم
+        const myInfo = {
+            userId: this.userId,
+            username: this.username,
+            timestamp: Date.now()
+        };
+        localStorage.setItem('mesh-chat-me', JSON.stringify(myInfo));
+        
+        // گوش دادن به تغییرات localStorage
         window.addEventListener('storage', (e) => {
             if (e.key === 'mesh-chat-peer' && e.newValue) {
                 try {
                     const data = JSON.parse(e.newValue);
-                    if (data.userId !== this.userId) {
+                    if (data.userId !== this.userId && (Date.now() - data.timestamp) < 10000) {
+                        console.log('🔍 همسایه (localStorage):', data);
                         this.addToPeersList(data);
+                        
+                        if (!this.connections.has(data.userId)) {
+                            setTimeout(() => {
+                                this.connectToPeer(data.userId, true);
+                            }, 500);
+                        }
                     }
                 } catch (error) {}
             }
         });
         
-        // ارسال سیگنال
+        // ارسال منظم
         setInterval(() => {
             if (this.username) {
                 localStorage.setItem('mesh-chat-peer', JSON.stringify({
                     userId: this.userId,
                     username: this.username,
-                    time: Date.now()
+                    timestamp: Date.now()
                 }));
             }
-        }, 5000);
+        }, 3000);
     }
 
     addToPeersList(peerInfo) {
         if (!this.elements.peersList) return;
         
+        // حذف موارد تکراری
         const existing = Array.from(this.elements.peersList.children).find(
             el => el.dataset.userId === peerInfo.userId
         );
@@ -421,6 +428,16 @@ class MeshChat {
             peerElement.textContent = peerInfo.username || peerInfo.userId;
             peerElement.title = `شناسه: ${peerInfo.userId}`;
             this.elements.peersList.appendChild(peerElement);
+            
+            // اگه چت کلی باز بود، پیام بده
+            if (!this.elements.publicChatSection.classList.contains('hidden')) {
+                this.displayMessage(this.elements.publicMessages, {
+                    text: `👤 ${peerInfo.username || peerInfo.userId} به شبکه پیوست`,
+                    sender: 'سیستم',
+                    isSent: false,
+                    time: new Date().toLocaleTimeString('fa-IR')
+                });
+            }
         }
     }
 
@@ -428,14 +445,24 @@ class MeshChat {
         this.connections.set(conn.peer, conn);
         
         conn.on('open', () => {
-            console.log('✅ اتصال با', conn.peer, 'برقرار شد');
+            console.log('✅ اتصال برقرار شد با:', conn.peer);
             
+            // ارسال اطلاعات خودم
             conn.send({
                 type: 'user-info',
                 username: this.username,
-                userId: this.userId,
-                time: Date.now()
+                userId: this.userId
             });
+            
+            // اگه چت کلی باز بود، پیام بده
+            if (!this.elements.publicChatSection.classList.contains('hidden')) {
+                this.displayMessage(this.elements.publicMessages, {
+                    text: `🔗 اتصال به ${conn.remoteUsername || conn.peer} برقرار شد`,
+                    sender: 'سیستم',
+                    isSent: false,
+                    time: new Date().toLocaleTimeString('fa-IR')
+                });
+            }
         });
 
         conn.on('data', (data) => {
@@ -443,27 +470,19 @@ class MeshChat {
         });
 
         conn.on('close', () => {
-            console.log('📴 اتصال با', conn.peer, 'بسته شد');
+            console.log('📴 اتصال بسته شد:', conn.peer);
             this.connections.delete(conn.peer);
             this.removeFromPeersList(conn.peer);
-        });
-
-        conn.on('error', (err) => {
-            console.error('❌ خطای اتصال:', err);
-            this.connections.delete(conn.peer);
-        });
-    }
-
-    removeFromPeersList(peerId) {
-        if (!this.elements.peersList) return;
-        
-        const elements = this.elements.peersList.children;
-        for (let i = 0; i < elements.length; i++) {
-            if (elements[i].dataset.userId === peerId) {
-                elements[i].remove();
-                break;
+            
+            if (!this.elements.publicChatSection.classList.contains('hidden')) {
+                this.displayMessage(this.elements.publicMessages, {
+                    text: `👋 ${conn.remoteUsername || conn.peer} از شبکه خارج شد`,
+                    sender: 'سیستم',
+                    isSent: false,
+                    time: new Date().toLocaleTimeString('fa-IR')
+                });
             }
-        }
+        });
     }
 
     handleIncomingData(conn, data) {
@@ -478,24 +497,28 @@ class MeshChat {
                 break;
                 
             case 'public-message':
-                this.displayMessage(this.elements.publicMessages, {
-                    text: data.text,
-                    sender: conn.remoteUsername || 'کاربر ناشناس',
-                    isSent: false,
-                    time: data.time || time
-                });
+                if (!this.elements.publicChatSection.classList.contains('hidden')) {
+                    this.displayMessage(this.elements.publicMessages, {
+                        text: data.text,
+                        sender: conn.remoteUsername || 'کاربر',
+                        isSent: false,
+                        time: data.time || time
+                    });
+                }
                 break;
                 
             case 'private-message':
-                this.displayMessage(this.elements.privateMessages, {
-                    text: data.text,
-                    sender: conn.remoteUsername || 'کاربر ناشناس',
-                    isSent: false,
-                    time: data.time || time
-                });
-                
-                this.elements.privateMessageInput.disabled = false;
-                this.elements.sendPrivateBtn.disabled = false;
+                if (!this.elements.privateChatSection.classList.contains('hidden')) {
+                    this.displayMessage(this.elements.privateMessages, {
+                        text: data.text,
+                        sender: conn.remoteUsername || 'کاربر',
+                        isSent: false,
+                        time: data.time || time
+                    });
+                    
+                    this.elements.privateMessageInput.disabled = false;
+                    this.elements.sendPrivateBtn.disabled = false;
+                }
                 break;
         }
     }
@@ -503,14 +526,35 @@ class MeshChat {
     openPublicChat() {
         this.elements.publicChatSection.classList.remove('hidden');
         this.elements.privateChatSection.classList.add('hidden');
+        
+        // پاک کردن و اضافه کردن پیام‌های قبلی
         this.elements.publicMessages.innerHTML = '';
         
+        // پیام خوش‌آمد
         this.displayMessage(this.elements.publicMessages, {
-            text: 'به چت کلی خوش آمدید! می‌توانید با همه همسایه‌ها صحبت کنید.',
+            text: '🌐 چت کلی - با همه افراد آنلاین در اطراف خود صحبت کنید',
             sender: 'سیستم',
             isSent: false,
             time: new Date().toLocaleTimeString('fa-IR')
         });
+        
+        // نمایش تعداد افراد آنلاین
+        const onlineCount = this.connections.size;
+        if (onlineCount > 0) {
+            this.displayMessage(this.elements.publicMessages, {
+                text: `👥 ${onlineCount} نفر آنلاین هستند`,
+                sender: 'سیستم',
+                isSent: false,
+                time: new Date().toLocaleTimeString('fa-IR')
+            });
+        } else {
+            this.displayMessage(this.elements.publicMessages, {
+                text: '🕐 هیچ کس آنلاین نیست. منتظر بمانید...',
+                sender: 'سیستم',
+                isSent: false,
+                time: new Date().toLocaleTimeString('fa-IR')
+            });
+        }
     }
 
     openPrivateChat() {
@@ -524,17 +568,6 @@ class MeshChat {
             isSent: false,
             time: new Date().toLocaleTimeString('fa-IR')
         });
-    }
-
-    closePublicChat() {
-        this.elements.publicChatSection.classList.add('hidden');
-    }
-
-    closePrivateChat() {
-        this.elements.privateChatSection.classList.add('hidden');
-        this.elements.privateMessageInput.disabled = true;
-        this.elements.sendPrivateBtn.disabled = true;
-        this.elements.peerIdInput.value = '';
     }
 
     connectToPeer(peerId = null, isAutoConnect = false) {
@@ -552,26 +585,20 @@ class MeshChat {
 
         if (this.connections.has(targetId)) {
             if (!isAutoConnect) {
-                alert('از قبل به این کاربر متصل هستید');
+                alert('از قبل متصل هستید');
                 this.activatePrivateChat();
             }
             return;
         }
 
         try {
-            const conn = this.peer.connect(targetId, {
-                reliable: true,
-                serialization: 'json',
-                metadata: {
-                    username: this.username
-                }
-            });
+            console.log('🔌 تلاش برای اتصال به:', targetId);
+            const conn = this.peer.connect(targetId);
             
             this.handleIncomingConnection(conn);
             
             if (!isAutoConnect) {
                 this.activatePrivateChat();
-                
                 this.displayMessage(this.elements.privateMessages, {
                     text: 'در حال برقراری اتصال...',
                     sender: 'سیستم',
@@ -583,7 +610,7 @@ class MeshChat {
         } catch (error) {
             console.error('❌ خطا در اتصال:', error);
             if (!isAutoConnect) {
-                alert('خطا در اتصال. لطفاً دوباره تلاش کنید.');
+                alert('خطا در اتصال');
             }
         }
     }
@@ -601,6 +628,7 @@ class MeshChat {
         
         const time = new Date().toLocaleTimeString('fa-IR');
         
+        // نمایش پیام خودم
         this.displayMessage(this.elements.publicMessages, {
             text: message,
             sender: 'شما',
@@ -608,6 +636,7 @@ class MeshChat {
             time: time
         });
         
+        // ارسال به همه
         const messageData = {
             type: 'public-message',
             text: message,
@@ -621,14 +650,14 @@ class MeshChat {
                     conn.send(messageData);
                     sentCount++;
                 } catch (e) {
-                    console.error('❌ خطا در ارسال پیام:', e);
+                    console.error('❌ خطا در ارسال:', e);
                 }
             }
         });
         
         if (sentCount === 0) {
             this.displayMessage(this.elements.publicMessages, {
-                text: '⚠️ هیچ کاربری آنلاین نیست',
+                text: '⚠️ هیچ کسی آنلاین نیست',
                 sender: 'سیستم',
                 isSent: false,
                 time: time
@@ -643,6 +672,7 @@ class MeshChat {
         
         if (!message) return;
         
+        // پیدا کردن اولین اتصال فعال
         let targetConn = null;
         for (let [_, conn] of this.connections) {
             if (conn.open) {
@@ -652,7 +682,7 @@ class MeshChat {
         }
         
         if (!targetConn) {
-            alert('⚠️ اتصال برقرار نیست. ابتدا به یک کاربر متصل شوید.');
+            alert('⚠️ ابتدا به یک کاربر متصل شوید');
             return;
         }
         
@@ -674,18 +704,27 @@ class MeshChat {
         this.elements.privateMessageInput.value = '';
     }
 
+    removeFromPeersList(peerId) {
+        if (!this.elements.peersList) return;
+        
+        const elements = this.elements.peersList.children;
+        for (let i = 0; i < elements.length; i++) {
+            if (elements[i].dataset.userId === peerId) {
+                elements[i].remove();
+                break;
+            }
+        }
+    }
+
     displayMessage(container, message) {
         if (!container) return;
         
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${message.isSent ? 'sent' : 'received'}`;
         
-        const escapedText = this.escapeHtml(message.text);
-        const escapedSender = this.escapeHtml(message.sender);
-        
         messageDiv.innerHTML = `
-            <div class="message-content">${escapedText}</div>
-            <div class="message-info">${escapedSender} • ${message.time}</div>
+            <div class="message-content">${this.escapeHtml(message.text)}</div>
+            <div class="message-info">${this.escapeHtml(message.sender)} • ${message.time}</div>
         `;
         
         container.appendChild(messageDiv);
@@ -702,22 +741,28 @@ class MeshChat {
         if (!this.elements.connectionStatus) return;
         
         let dotColor = '#10b981';
+        let bgColor = '#f3f4f6';
         
         switch(type) {
             case 'success':
                 dotColor = '#10b981';
+                bgColor = '#f0fdf4';
                 break;
             case 'error':
                 dotColor = '#ef4444';
+                bgColor = '#fef2f2';
                 break;
             case 'offline':
                 dotColor = '#f59e0b';
+                bgColor = '#fffbeb';
                 break;
             case 'online':
                 dotColor = '#3b82f6';
+                bgColor = '#eff6ff';
                 break;
         }
         
+        this.elements.connectionStatus.style.background = bgColor;
         this.elements.connectionStatus.innerHTML = `
             <span class="status-dot" style="background: ${dotColor};"></span>
             <span>${text}</span>
@@ -725,11 +770,12 @@ class MeshChat {
     }
 }
 
-// راه‌اندازی برنامه
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 راه‌اندازی مش چت آفلاین...');
+// راه‌اندازی
+window.addEventListener('load', () => {
+    console.log('🚀 راه‌اندازی برنامه...');
     window.meshChat = new MeshChat();
     
+    // بازیابی اطلاعات ذخیره شده
     const savedUserId = localStorage.getItem('meshChat_userId');
     const savedUsername = localStorage.getItem('meshChat_username');
     
@@ -740,6 +786,4 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedUsername && document.getElementById('username-input')) {
         document.getElementById('username-input').value = savedUsername;
     }
-    
-    console.log('✅ برنامه آماده است');
 });
